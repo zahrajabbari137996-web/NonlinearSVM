@@ -128,6 +128,16 @@ end
 K_d_sqrt = sqrt(diag(K));
 vectornu = logspace(-3,0,5);
 
+% ----- NOVELTY START: CS-EN-RSVM -----
+% محاسبه وزن کلاس‌ها برای مقابله با عدم توازن داده‌ها (Cost-Sensitive)
+weight_A = m / (2 * m_A); 
+weight_B = m / (2 * m_B);
+W = [weight_A * ones(m_A, 1); weight_B * ones(m_B, 1)];
+
+% پارامتر تنظیم‌کننده Elastic-Net
+lambda_enet = 0.05; 
+% ----- NOVELTY END -----
+
 training_error_opt = Inf;
 
 for i_nu = 1:length(vectornu)
@@ -137,7 +147,10 @@ for i_nu = 1:length(vectornu)
     cvx_solver mosek
     cvx_precision high
     variables u(m) vargamma xi(m) s(m)
-    minimize sum(s) + nu*sum(xi)
+    
+    % [NOVELTY OBJECTIVE]: تابع هدف جدید با ترکیب Elastic-Net و Cost-Sensitive
+    minimize sum(s) + lambda_enet*sum_square(u) + nu*(W'*xi)
+    
     subject to
     D*(K*D*u-ones(m,1)*vargamma)+xi-delta*(K_d_sqrt'*s) >= ones(m,1);
     xi >= 0;
